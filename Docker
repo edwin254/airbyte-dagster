@@ -1,0 +1,46 @@
+ARG BASE_IMAGE=python:3.9.10-slim-buster
+
+# label to be able to reference at a later build stage
+FROM "${BASE_IMAGE}" as dev
+
+ENV PYTHONUNBUFFERED=True
+ENV PIP_NO_CACHE_DIR=True
+
+# Install the python package managers.
+RUN pip install -U \
+    pip \
+    setuptools \
+    wheel \
+    poetry
+
+# Set this folder at the system root and then cd into it.
+WORKDIR /usr/app/
+
+COPY poetry.lock pyproject.toml ./
+RUN poetry install
+
+RUN echo "poetry install" > /usr/bin/dev_command.sh
+RUN echo "poetry run dagit -h 0.0.0.0 -p 3000" >> /usr/bin/dev_command.sh
+RUN chmod +x /usr/bin/dev_command.sh
+
+EXPOSE 3000
+CMD ["bash", "dev_command.sh"]
+
+# for BUILD stage which extends the dev stage
+FROM dev as build
+RUN poetry install --no-dev
+COPY . .
+
+RUN poetry build --format wheel | grep "Built" | sed 's/^.*\s\(.*\.whl\)/\1/' > package_name
+
+# build for prod deploy stage
+
+FROM "${BASE_IMAGE}"
+# copy the directory with our wheel
+COPY --from=build /usr/src/app/dist repo_package
+# copy the file containing our wheel filename
+COPY --from=build /usr/src/app/package_name package_name
+
+RUN pip install --no-cache-dir repo_package/$(cat package_name)
+COPY workspace.yaml workspace.yaml
+COPY job_configs job_configs
