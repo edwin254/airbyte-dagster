@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "airbyte-dagster"
+version = "0.1.0"
+description = "practice dagster assets"
+authors = ["Edwin254 <kamande254@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+dagster = "^0.14.6"
+
+[tool.poetry.dev-dependencies]
+dagit = "^0.14.6"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
